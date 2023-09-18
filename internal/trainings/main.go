@@ -6,10 +6,10 @@ import (
 	"os"
 
 	"cloud.google.com/go/firestore"
-	grpcClient "github.com/ThreeDotsLabs/wild-workouts-go-ddd-example/internal/common/client"
-	"github.com/ThreeDotsLabs/wild-workouts-go-ddd-example/internal/common/logs"
-	"github.com/ThreeDotsLabs/wild-workouts-go-ddd-example/internal/common/server"
 	"github.com/go-chi/chi"
+	grpcClient "github.com/vasiliiperfilev/ddd/internal/common/client"
+	"github.com/vasiliiperfilev/ddd/internal/common/logs"
+	"github.com/vasiliiperfilev/ddd/internal/common/server"
 )
 
 func main() {

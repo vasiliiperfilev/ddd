@@ -2,11 +2,10 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
-	"cloud.google.com/go/compute/metadata"
 	"github.com/pkg/errors"
+	"google.golang.org/api/idtoken"
 	"google.golang.org/grpc/credentials"
 )
 
@@ -24,15 +23,17 @@ func newMetadataServerToken(grpcAddr string) credentials.PerRPCCredentials {
 
 // GetRequestMetadata is called on every request, so we are sure that token is always not expired
 func (t metadataServerToken) GetRequestMetadata(ctx context.Context, in ...string) (map[string]string, error) {
-	// based on https://cloud.google.com/run/docs/authenticating/service-to-service#go
-	tokenURL := fmt.Sprintf("/instance/service-accounts/default/identity?audience=%s", t.serviceURL)
-	idToken, err := metadata.Get(tokenURL)
+	ts, err := idtoken.NewTokenSource(ctx, t.serviceURL)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot create token source for gRPC")
+	}
+	idToken, err := ts.Token()
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot query id token for gRPC")
 	}
 
 	return map[string]string{
-		"authorization": "Bearer " + idToken,
+		"authorization": "Bearer " + idToken.AccessToken,
 	}, nil
 }
 

@@ -7,11 +7,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ThreeDotsLabs/wild-workouts-go-ddd-example/internal/common/genproto/trainer"
-	"github.com/ThreeDotsLabs/wild-workouts-go-ddd-example/internal/common/genproto/users"
 	"github.com/pkg/errors"
+	"github.com/vasiliiperfilev/ddd/internal/common/genproto/trainer"
+	"github.com/vasiliiperfilev/ddd/internal/common/genproto/users"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func NewTrainerClient() (client trainer.TrainerServiceClient, close func() error, err error) {
@@ -62,7 +63,7 @@ func WaitForUsersService(timeout time.Duration) bool {
 
 func grpcDialOpts(grpcAddr string) ([]grpc.DialOption, error) {
 	if noTLS, _ := strconv.ParseBool(os.Getenv("GRPC_NO_TLS")); noTLS {
-		return []grpc.DialOption{grpc.WithInsecure()}, nil
+		return []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}, nil
 	}
 
 	systemRoots, err := x509.SystemCertPool()

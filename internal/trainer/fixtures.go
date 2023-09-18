@@ -5,11 +5,11 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/ThreeDotsLabs/wild-workouts-go-ddd-example/internal/common/client"
-	"github.com/ThreeDotsLabs/wild-workouts-go-ddd-example/internal/common/genproto/trainer"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/vasiliiperfilev/ddd/internal/common/client"
+	"github.com/vasiliiperfilev/ddd/internal/common/genproto/trainer"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func loadFixtures(db db) {
@@ -71,10 +71,7 @@ func loadTrainerFixtures(ctx context.Context) error {
 		for hour := 12; hour <= 20; hour++ {
 			trainingTime := time.Date(date.Year(), date.Month(), date.Day(), hour, 0, 0, 0, time.UTC)
 
-			ts, err := ptypes.TimestampProto(trainingTime)
-			if err != nil {
-				return errors.Wrapf(err, "unable to marshal time %s", trainingTime)
-			}
+			ts := timestamppb.New(trainingTime)
 
 			if localRand.NormFloat64() > 0 {
 				_, err = trainerClient.UpdateHour(ctx, &trainer.UpdateHourRequest{

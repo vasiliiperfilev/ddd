@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/firestore"
-	"github.com/ThreeDotsLabs/wild-workouts-go-ddd-example/internal/common/auth"
+	"github.com/vasiliiperfilev/ddd/internal/common/auth"
 	"google.golang.org/api/iterator"
 )
 

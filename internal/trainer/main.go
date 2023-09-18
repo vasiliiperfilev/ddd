@@ -8,10 +8,10 @@ import (
 	"strings"
 
 	"cloud.google.com/go/firestore"
-	"github.com/ThreeDotsLabs/wild-workouts-go-ddd-example/internal/common/genproto/trainer"
-	"github.com/ThreeDotsLabs/wild-workouts-go-ddd-example/internal/common/logs"
-	"github.com/ThreeDotsLabs/wild-workouts-go-ddd-example/internal/common/server"
 	"github.com/go-chi/chi"
+	"github.com/vasiliiperfilev/ddd/internal/common/genproto/trainer"
+	"github.com/vasiliiperfilev/ddd/internal/common/logs"
+	"github.com/vasiliiperfilev/ddd/internal/common/server"
 	"google.golang.org/grpc"
 )
 

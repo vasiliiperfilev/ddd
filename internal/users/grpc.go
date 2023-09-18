@@ -7,7 +7,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/ThreeDotsLabs/wild-workouts-go-ddd-example/internal/common/genproto/users"
+	"github.com/vasiliiperfilev/ddd/internal/common/genproto/users"
 )
 
 type GrpcServer struct {

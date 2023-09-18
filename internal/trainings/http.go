@@ -6,15 +6,15 @@ import (
 	"time"
 
 	"cloud.google.com/go/firestore"
-	"github.com/ThreeDotsLabs/wild-workouts-go-ddd-example/internal/common/auth"
-	"github.com/ThreeDotsLabs/wild-workouts-go-ddd-example/internal/common/genproto/trainer"
-	"github.com/ThreeDotsLabs/wild-workouts-go-ddd-example/internal/common/genproto/users"
-	"github.com/ThreeDotsLabs/wild-workouts-go-ddd-example/internal/common/server/httperr"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"github.com/vasiliiperfilev/ddd/internal/common/auth"
+	"github.com/vasiliiperfilev/ddd/internal/common/genproto/trainer"
+	"github.com/vasiliiperfilev/ddd/internal/common/genproto/users"
+	"github.com/vasiliiperfilev/ddd/internal/common/server/httperr"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type HttpServer struct {
@@ -91,10 +91,7 @@ func (h HttpServer) CreateTraining(w http.ResponseWriter, r *http.Request) {
 			return errors.Wrap(err, "unable to change trainings balance")
 		}
 
-		timestamp, err := ptypes.TimestampProto(postTraining.Time)
-		if err != nil {
-			return errors.Wrap(err, "unable to convert time to proto timestamp")
-		}
+		timestamp := timestamppb.New(postTraining.Time)
 		_, err = h.trainerClient.UpdateHour(ctx, &trainer.UpdateHourRequest{
 			Time:                 timestamp,
 			HasTrainingScheduled: true,
@@ -165,10 +162,7 @@ func (h HttpServer) CancelTraining(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		timestamp, err := ptypes.TimestampProto(training.Time)
-		if err != nil {
-			return errors.Wrap(err, "unable to convert time to proto timestamp")
-		}
+		timestamp := timestamppb.New(training.Time)
 		_, err = h.trainerClient.UpdateHour(ctx, &trainer.UpdateHourRequest{
 			Time:                 timestamp,
 			HasTrainingScheduled: false,
@@ -335,17 +329,10 @@ func (h HttpServer) RejectRescheduleTraining(w http.ResponseWriter, r *http.Requ
 }
 
 func (h HttpServer) rescheduleTraining(ctx context.Context, oldTime, newTime time.Time) error {
-	oldTimeProto, err := ptypes.TimestampProto(oldTime)
-	if err != nil {
-		return errors.Wrap(err, "unable to convert time to proto timestamp")
-	}
+	oldTimeProto := timestamppb.New(oldTime)
+	newTimeProto := timestamppb.New(newTime)
 
-	newTimeProto, err := ptypes.TimestampProto(newTime)
-	if err != nil {
-		return errors.Wrap(err, "unable to convert time to proto timestamp")
-	}
-
-	_, err = h.trainerClient.UpdateHour(ctx, &trainer.UpdateHourRequest{
+	_, err := h.trainerClient.UpdateHour(ctx, &trainer.UpdateHourRequest{
 		Time:                 newTimeProto,
 		HasTrainingScheduled: true,
 		Available:            false,

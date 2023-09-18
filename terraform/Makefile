@@ -45,8 +45,6 @@ done:
 	@${load_envs} && printf "\e[92mCongratulations!\e[0m Your project should be available at: https://$$TF_VAR_project.web.app \n"
 	@echo
 	@${load_envs} && echo "If it's not, check if the build finished successfully: https://console.cloud.google.com/cloud-build/builds?project=$$TF_VAR_project"
-	@echo
-	@echo "If you need help, feel free to contact us at https://threedots.tech"
 
 .PHONY: set_project
 set_project:

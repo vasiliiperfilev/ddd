@@ -64,14 +64,14 @@ export function getTestUsers() {
     return [
         {
             'uuid': '1',
-            'login': 'trainer@threedots.tech',
+            'login': 'trainer@vasilii.tech',
             'password': '123456',
             'role': 'trainer',
             'name': 'Trainer',
         },
         {
             'uuid': '2',
-            'login': 'attendee@threedots.tech',
+            'login': 'attendee@vasilii.tech',
             'password': '123456',
             'role': 'attendee',
             'name': 'Mock Arnie',

@@ -3,8 +3,8 @@ package httperr
 import (
 	"net/http"
 
-	"github.com/ThreeDotsLabs/wild-workouts-go-ddd-example/internal/common/logs"
 	"github.com/go-chi/render"
+	"github.com/vasiliiperfilev/ddd/internal/common/logs"
 )
 
 func InternalError(slug string, err error, w http.ResponseWriter, r *http.Request) {

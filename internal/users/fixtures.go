@@ -8,10 +8,10 @@ import (
 
 	firebase "firebase.google.com/go"
 	"firebase.google.com/go/auth"
-	"github.com/ThreeDotsLabs/wild-workouts-go-ddd-example/internal/common/client"
-	"github.com/ThreeDotsLabs/wild-workouts-go-ddd-example/internal/common/genproto/users"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/vasiliiperfilev/ddd/internal/common/client"
+	"github.com/vasiliiperfilev/ddd/internal/common/genproto/users"
 	"google.golang.org/api/option"
 )
 
@@ -84,17 +84,17 @@ func createFirebaseUsers() ([]string, error) {
 	}{
 		{
 
-			Email:       "trainer@threedots.tech",
+			Email:       "trainer@vasiliis.tech",
 			DisplayName: "Trainer",
 			Role:        "trainer",
 		},
 		{
-			Email:       "attendee@threedots.tech",
+			Email:       "attendee@vasiliis.tech",
 			DisplayName: "Mariusz Pudzianowski",
 			Role:        "attendee",
 		},
 		{
-			Email:       "attendee2@threedots.tech",
+			Email:       "attendee2@vasiliis.tech",
 			DisplayName: "Arnold Schwarzenegger",
 			Role:        "attendee",
 		},

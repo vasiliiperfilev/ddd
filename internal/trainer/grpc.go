@@ -2,13 +2,9 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"time"
 
-	"github.com/ThreeDotsLabs/wild-workouts-go-ddd-example/internal/common/genproto/trainer"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/vasiliiperfilev/ddd/internal/common/genproto/trainer"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -18,10 +14,7 @@ type GrpcServer struct {
 }
 
 func (g GrpcServer) UpdateHour(ctx context.Context, req *trainer.UpdateHourRequest) (*trainer.EmptyResponse, error) {
-	trainingTime, err := grpcTimestampToTime(req.Time)
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "unable to parse time")
-	}
+	trainingTime := req.Time.AsTime()
 
 	date, err := g.db.DateModel(ctx, trainingTime)
 	if err != nil {
@@ -58,12 +51,8 @@ func (g GrpcServer) UpdateHour(ctx context.Context, req *trainer.UpdateHourReque
 }
 
 func (g GrpcServer) IsHourAvailable(ctx context.Context, req *trainer.IsHourAvailableRequest) (*trainer.IsHourAvailableResponse, error) {
-	timeToCheck, err := grpcTimestampToTime(req.Time)
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "unable to parse time")
-	}
-
-	model, err := g.db.DateModel(ctx, timeToCheck)
+	timeToCheck := req.Time.AsTime()
+	model, err := g.db.DateModel(ctx, req.Time.AsTime())
 	if err != nil {
 		return nil, status.Error(codes.Internal, fmt.Sprintf("unable to get data model: %s", err))
 	}
@@ -73,15 +62,4 @@ func (g GrpcServer) IsHourAvailable(ctx context.Context, req *trainer.IsHourAvai
 	}
 
 	return &trainer.IsHourAvailableResponse{IsAvailable: false}, nil
-}
-
-func grpcTimestampToTime(timestamp *timestamp.Timestamp) (time.Time, error) {
-	t, err := ptypes.Timestamp(timestamp)
-	if err != nil {
-		return time.Time{}, errors.New("unable to parse time")
-	}
-
-	t = t.UTC().Truncate(time.Hour)
-
-	return t, nil
 }

@@ -4,11 +4,6 @@ Wild Workouts is an example project that we created to show how to build Go appl
 
 No application is perfect from the beginning. With over a dozen coming articles, we will uncover what issues you can find in the current implementation. We will also show how to fix these issues and achieve clean implementation by refactoring.
 
-### Articles
-
-1. [**Too modern Go application? Building a serverless application with Google Cloud Run and Firebase**](https://threedots.tech/post/serverless-cloud-run-firebase-modern-go-application/?utm_source=github.com)
-2. *More articles are on the way!*
-
 ### Directories
 
 - [api](api/) OpenAPI and gRPC definitions
@@ -17,10 +12,6 @@ No application is perfect from the beginning. With over a dozen coming articles,
 - [scripts](scripts/) deployment and development scripts
 - [terraform](terraform/) - infrastructure defintion
 - [web](web/) - frontend JavaScript code
-
-### Live Demo
-
-The example application is available at [https://threedotslabs-wildworkouts.web.app/](https://threedotslabs-wildworkouts.web.app/).
 
 ### Running locally
 
@@ -69,12 +60,4 @@ The Spark plan is completely free and has all features needed for running this p
 Congratulations! Your project should be available at: https://[your-project].web.app
 
 If it's not, check if the build finished successfully: https://console.cloud.google.com/cloud-build/builds?project=[your-project]
-
-If you need help, feel free to contact us at https://threedots.tech
 ```
-
-### Screenshots
-
-![Wild Workouts login](https://threedots.tech/media/serverless-cloud-run-firebase-modern-go-app/login.png "Logo Title Text 1")
-![Wild Workouts trainer's schedule](https://threedots.tech/media/serverless-cloud-run-firebase-modern-go-app/schedule.png "Logo Title Text 1")
-![Wild Workouts schedule training](https://threedots.tech/media/serverless-cloud-run-firebase-modern-go-app/new-training.png "Logo Title Text 1")
