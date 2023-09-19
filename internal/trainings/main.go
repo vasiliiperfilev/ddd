@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"cloud.google.com/go/firestore"
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 	grpcClient "github.com/vasiliiperfilev/ddd/internal/common/client"
 	"github.com/vasiliiperfilev/ddd/internal/common/logs"
 	"github.com/vasiliiperfilev/ddd/internal/common/server"

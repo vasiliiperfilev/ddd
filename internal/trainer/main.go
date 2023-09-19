@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"cloud.google.com/go/firestore"
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 	"github.com/vasiliiperfilev/ddd/internal/common/genproto/trainer"
 	"github.com/vasiliiperfilev/ddd/internal/common/logs"
 	"github.com/vasiliiperfilev/ddd/internal/common/server"

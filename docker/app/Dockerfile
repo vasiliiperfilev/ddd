@@ -1,6 +1,6 @@
-FROM golang:1.14
+FROM golang:1.21
 
-RUN go get github.com/cespare/reflex
+RUN go install github.com/cespare/reflex@latest
 COPY reflex.conf /
 
 COPY start.sh /

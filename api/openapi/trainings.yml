@@ -58,7 +58,6 @@ paths:
           name: trainingUUID
           schema:
             type: string
-            format: uuid
           required: true
           description: todo
       responses:
@@ -86,7 +85,6 @@ paths:
           name: trainingUUID
           schema:
             type: string
-            format: uuid
           required: true
           description: todo
       responses:
@@ -108,7 +106,6 @@ paths:
           name: trainingUUID
           schema:
             type: string
-            format: uuid
           required: true
           description: todo
       responses:
@@ -129,7 +126,6 @@ paths:
           name: trainingUUID
           schema:
             type: string
-            format: uuid
           required: true
           description: todo
       responses:
@@ -155,13 +151,11 @@ components:
       properties:
         uuid:
           type: string
-          format: uuid
         user:
           type: string
           example: Mariusz Pudzianowski
         userUuid:
           type: string
-          format: uuid
         notes:
           type: string
           example: "let's do leg day!"

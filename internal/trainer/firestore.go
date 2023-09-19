@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"cloud.google.com/go/firestore"
-	"github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/go-chi/render"
+	"github.com/oapi-codegen/runtime/types"
 	"github.com/pkg/errors"
 	"google.golang.org/api/iterator"
 	"google.golang.org/grpc/codes"

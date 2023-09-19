@@ -3,7 +3,7 @@ package main
 import (
 	"time"
 
-	"github.com/deepmap/oapi-codegen/pkg/types"
+	"github.com/oapi-codegen/runtime/types"
 )
 
 const (

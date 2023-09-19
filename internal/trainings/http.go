@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"cloud.google.com/go/firestore"
-	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -109,9 +108,7 @@ func (h HttpServer) CreateTraining(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h HttpServer) CancelTraining(w http.ResponseWriter, r *http.Request) {
-	trainingUUID := r.Context().Value("trainingUUID").(string)
-
+func (h HttpServer) CancelTraining(w http.ResponseWriter, r *http.Request, trainingUUID string) {
 	user, err := auth.UserFromCtx(r.Context())
 	if err != nil {
 		httperr.Unauthorised("no-user-found", err, w, r)
@@ -180,9 +177,7 @@ func (h HttpServer) CancelTraining(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h HttpServer) RescheduleTraining(w http.ResponseWriter, r *http.Request) {
-	trainingUUID := chi.URLParam(r, "trainingUUID")
-
+func (h HttpServer) RescheduleTraining(w http.ResponseWriter, r *http.Request, trainingUUID string) {
 	rescheduleTraining := PostTraining{}
 	if err := render.Decode(r, &rescheduleTraining); err != nil {
 		httperr.BadRequest("invalid-request", err, w, r)
@@ -245,9 +240,7 @@ func (h HttpServer) RescheduleTraining(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h HttpServer) ApproveRescheduleTraining(w http.ResponseWriter, r *http.Request) {
-	trainingUUID := chi.URLParam(r, "trainingUUID")
-
+func (h HttpServer) ApproveRescheduleTraining(w http.ResponseWriter, r *http.Request, trainingUUID string) {
 	user, err := auth.UserFromCtx(r.Context())
 	if err != nil {
 		httperr.Unauthorised("no-user-found", err, w, r)
@@ -290,9 +283,7 @@ func (h HttpServer) ApproveRescheduleTraining(w http.ResponseWriter, r *http.Req
 	}
 }
 
-func (h HttpServer) RejectRescheduleTraining(w http.ResponseWriter, r *http.Request) {
-	trainingUUID := chi.URLParam(r, "trainingUUID")
-
+func (h HttpServer) RejectRescheduleTraining(w http.ResponseWriter, r *http.Request, trainingUUID string) {
 	user, err := auth.UserFromCtx(r.Context())
 	if err != nil {
 		httperr.Unauthorised("no-user-found", err, w, r)
