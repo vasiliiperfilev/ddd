@@ -94,6 +94,14 @@ func (siw *ServerInterfaceWrapper) GetTrainerAvailableHours(w http.ResponseWrite
 		return
 	}
 
+	// ------------- Optional query parameter "pagination" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pagination", r.URL.Query(), &params.Pagination)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "pagination", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetTrainerAvailableHours(w, r, params)
 	}))

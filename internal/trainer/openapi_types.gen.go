@@ -38,10 +38,22 @@ type HourUpdate struct {
 	Hours []time.Time `json:"hours"`
 }
 
+// PaginationMetadata defines model for PaginationMetadata.
+type PaginationMetadata struct {
+	CurrentPage  int `json:"currentPage"`
+	PageSize     int `json:"pageSize"`
+	TotalPages   int `json:"totalPages"`
+	TotalRecords int `json:"totalRecords"`
+}
+
 // GetTrainerAvailableHoursParams defines parameters for GetTrainerAvailableHours.
 type GetTrainerAvailableHoursParams struct {
-	DateFrom time.Time `form:"dateFrom" json:"dateFrom"`
-	DateTo   time.Time `form:"dateTo" json:"dateTo"`
+	DateFrom   time.Time `form:"dateFrom" json:"dateFrom"`
+	DateTo     time.Time `form:"dateTo" json:"dateTo"`
+	Pagination *struct {
+		Page     *int32 `json:"page,omitempty"`
+		PageSize *int32 `json:"page_size,omitempty"`
+	} `form:"pagination,omitempty" json:"pagination,omitempty"`
 }
 
 // MakeHourAvailableJSONRequestBody defines body for MakeHourAvailable for application/json ContentType.

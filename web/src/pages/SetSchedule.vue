@@ -79,7 +79,7 @@
             this.selectedPeriod = this.selectedPeriodValue(this.periods[0])
 
             getSchedule(this.selectedDateFrom, this.selectedDateTo, function (data) {
-                self.schedule = data
+                self.schedule = data.data
             })
         },
         methods: {
@@ -104,7 +104,7 @@
 
                     setHourAvailability(updates, true, function () {
                         getSchedule(self.selectedDateFrom, self.selectedDateTo, function (data) {
-                            self.schedule = data
+                            self.schedule = data.data
                         })
                     })
                 }
@@ -117,7 +117,7 @@
 
                 let self = this
                 getSchedule(this.selectedDateFrom, this.selectedDateTo, function (data) {
-                    self.schedule = data
+                    self.schedule = data.data
                 })
             },
             toggleHour(event, hour) {

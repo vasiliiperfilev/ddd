@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"math"
 	"net/http"
 	"sort"
 	"time"
@@ -17,6 +18,16 @@ import (
 
 type db struct {
 	firestoreClient *firestore.Client
+}
+
+type Pagination *struct {
+	Page     *int32 `json:"page,omitempty"`
+	PageSize *int32 `json:"page_size,omitempty"`
+}
+
+type DataWithPagination[T any] struct {
+	Data               []T                `json:"data"`
+	PaginationMetadata PaginationMetadata `json:"paginationMetadata"`
 }
 
 func (d db) TrainerHoursCollection() *firestore.CollectionRef {
@@ -51,48 +62,63 @@ func (d db) DateModel(ctx context.Context, dateToFind time.Time) (Date, error) {
 	return date, nil
 }
 
-func (d db) GetDates(ctx context.Context, params *GetTrainerAvailableHoursParams) ([]Date, error) {
-	dates, err := d.QueryDates(params, ctx)
+func (d db) GetDates(ctx context.Context, params *GetTrainerAvailableHoursParams) (DataWithPagination[Date], error) {
+	datesWithPagination, err := d.QueryDates(params, ctx)
 	if err != nil {
-		return nil, err
+		return DataWithPagination[Date]{}, err
 	}
-	dates = addMissingDates(params, dates)
+	// TODO: figure out what is this functionality
+	// datesWithPagination.Data = addMissingDates(params, datesWithPagination.Data)
 
-	for _, date := range dates {
+	for _, date := range datesWithPagination.Data {
 		sort.Slice(date.Hours, func(i, j int) bool { return date.Hours[i].Hour.Before(date.Hours[j].Hour) })
 	}
-	sort.Slice(dates, func(i, j int) bool { return dates[i].Date.Before(dates[j].Date.Time) })
+	sort.Slice(datesWithPagination.Data, func(i, j int) bool {
+		date1 := datesWithPagination.Data[i].Date
+		date2 := datesWithPagination.Data[j].Date
+		return date1.Before(date2.Time)
+	})
 
-	return dates, nil
+	return datesWithPagination, nil
 }
 
-func (d db) QueryDates(params *GetTrainerAvailableHoursParams, ctx context.Context) ([]Date, error) {
-	iter := d.
+func (d db) QueryDates(params *GetTrainerAvailableHoursParams, ctx context.Context) (DataWithPagination[Date], error) {
+	query := d.
 		TrainerHoursCollection().
 		Where("Date.Time", ">=", params.DateFrom).
-		Where("Date.Time", "<=", params.DateTo).
+		Where("Date.Time", "<=", params.DateTo)
+	limit, offset := d.getOffsetAndLimit(params.Pagination)
+	total, err := d.getTotal(query, ctx)
+	if err != nil {
+		return DataWithPagination[Date]{}, err
+	}
+	iter := query.
+		Limit(limit).
+		Offset(offset).
 		Documents(ctx)
 
 	var dates []Date
-
 	for {
 		doc, err := iter.Next()
 		if err == iterator.Done {
 			break
 		}
 		if err != nil {
-			return nil, err
+			return DataWithPagination[Date]{}, err
 		}
 
 		date := Date{}
 		if err := doc.DataTo(&date); err != nil {
-			return nil, err
+			return DataWithPagination[Date]{}, err
 		}
 		date = setDefaultAvailability(date)
 		dates = append(dates, date)
 	}
-
-	return dates, nil
+	pagination, err := d.createPaginationMetadata(total, limit, offset)
+	if err != nil {
+		return DataWithPagination[Date]{}, err
+	}
+	return DataWithPagination[Date]{Data: dates, PaginationMetadata: pagination}, nil
 }
 
 func (d db) SaveModel(ctx context.Context, date Date) error {
@@ -188,4 +214,42 @@ func setAvailability(hourUpdate time.Time, date Date, availabilityToSet bool) (D
 	}
 
 	return date, nil
+}
+
+func (d db) getOffsetAndLimit(pagination Pagination) (limit int, offset int) {
+	if pagination == nil {
+		return 10, 0
+	}
+	if pagination.Page == nil || *pagination.Page < 0 {
+		return 10, 0
+	}
+	if pagination.PageSize == nil || *pagination.PageSize < 1 {
+		return 10, 0
+	}
+	limit = int(*pagination.PageSize)
+	offset = int((*pagination.Page - 1)) * limit
+	return limit, offset
+}
+
+func (d db) createPaginationMetadata(total int, limit int, offset int) (PaginationMetadata, error) {
+	totalPages := int(math.Ceil(float64(total) / float64(limit)))
+	currentPage := (offset / limit) + 1
+	return PaginationMetadata{CurrentPage: currentPage, PageSize: limit, TotalPages: totalPages, TotalRecords: total}, nil
+}
+
+// TODO: figure out better way to get total count in firestore
+func (d db) getTotal(query firestore.Query, ctx context.Context) (int, error) {
+	iter := query.Documents(ctx)
+	total := 0
+	for {
+		_, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return 0, err
+		}
+		total++
+	}
+	return total, nil
 }

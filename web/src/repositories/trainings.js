@@ -23,8 +23,9 @@ if (process.env.NODE_ENV === 'development') {
     trainerClient.basePath = "http://localhost:3000/api"
 }
 
+// TODO: add pagination to api call
 export function getSchedule(dateFrom, dateTo, callback) {
-    trainerAPI.getTrainerAvailableHours(dateFrom, dateTo, (error, data) => {
+    trainerAPI.getTrainerAvailableHours(dateFrom, dateTo, {}, (error, data) => {
         if (error) {
             console.error(error)
         } else {
