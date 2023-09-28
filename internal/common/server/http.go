@@ -61,7 +61,7 @@ func RunHTTPServer(createHandler func(router chi.Router) http.Handler) error {
 	// Calling Shutdown() on our server will cause ListenAndServe() to immediately
 	// return a http.ErrServerClosed error. So if we see this error, it is actually a
 	// good thing and an indication that the graceful shutdown has started
-	err := http.ListenAndServe(":"+os.Getenv("PORT"), rootRouter)
+	err := srv.ListenAndServe()
 	if !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
