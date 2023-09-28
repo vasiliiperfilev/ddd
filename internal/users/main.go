@@ -9,6 +9,7 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"github.com/go-chi/chi/v5"
+	"github.com/sirupsen/logrus"
 	"github.com/vasiliiperfilev/ddd/internal/common/genproto/users"
 	"github.com/vasiliiperfilev/ddd/internal/common/logs"
 	"github.com/vasiliiperfilev/ddd/internal/common/server"
@@ -30,9 +31,12 @@ func main() {
 	case "http":
 		go loadFixtures(firebaseDB)
 
-		server.RunHTTPServer(func(router chi.Router) http.Handler {
+		err := server.RunHTTPServer(func(router chi.Router) http.Handler {
 			return HandlerFromMux(HttpServer{firebaseDB}, router)
 		})
+		if err != nil {
+			logrus.Fatal(err)
+		}
 	case "grpc":
 		server.RunGRPCServer(func(server *grpc.Server) {
 			svc := GrpcServer{firebaseDB}

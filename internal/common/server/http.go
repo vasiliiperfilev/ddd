@@ -2,10 +2,15 @@ package server
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
+	"time"
 
 	firebase "firebase.google.com/go"
 	"github.com/go-chi/chi/v5"
@@ -17,17 +22,65 @@ import (
 	"google.golang.org/api/option"
 )
 
-func RunHTTPServer(createHandler func(router chi.Router) http.Handler) {
+func RunHTTPServer(createHandler func(router chi.Router) http.Handler) error {
 	apiRouter := chi.NewRouter()
 	setMiddlewares(apiRouter)
-
 	rootRouter := chi.NewRouter()
 	// we are mounting all APIs under /api path
 	rootRouter.Mount("/api", createHandler(apiRouter))
 
 	logrus.Info("Starting HTTP server")
+	srv := &http.Server{
+		Addr:         fmt.Sprintf(":" + os.Getenv("PORT")),
+		Handler:      rootRouter,
+		IdleTimeout:  time.Minute,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}
 
-	http.ListenAndServe(":"+os.Getenv("PORT"), rootRouter)
+	// Create a shutdownError channel. We will use this to receive any errors returned
+	// by the graceful Shutdown() function.
+	shutdownError := make(chan error)
+	// routine to intercept SIGTERM and SIGINT
+	go func() {
+		// Create a quit channel which carries os.Signal values.
+		// we need buffered channel cause signal.Notify is non-blocking
+		quit := make(chan os.Signal, 1)
+		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+		s := <-quit
+
+		logrus.Info("shutting down server", map[string]string{
+			"signal": s.String(),
+		})
+
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		shutdownError <- srv.Shutdown(ctx)
+	}()
+	// Calling Shutdown() on our server will cause ListenAndServe() to immediately
+	// return a http.ErrServerClosed error. So if we see this error, it is actually a
+	// good thing and an indication that the graceful shutdown has started
+	err := http.ListenAndServe(":"+os.Getenv("PORT"), rootRouter)
+	if !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+
+	// Otherwise, we wait to receive the return value from Shutdown() on the
+	// shutdownError channel. If return value is an error, we know that there was a
+	// problem with the graceful shutdown and we return the error.
+	err = <-shutdownError
+	if err != nil {
+		return err
+	}
+
+	// At this point we know that the graceful shutdown completed successfully and we
+	// log a "stopped server" message.
+	logrus.Info("stopped server", map[string]string{
+		"addr": srv.Addr,
+	})
+
+	return nil
 }
 
 func setMiddlewares(router *chi.Mux) {

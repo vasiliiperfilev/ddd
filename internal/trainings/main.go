@@ -7,6 +7,7 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"github.com/go-chi/chi/v5"
+	"github.com/sirupsen/logrus"
 	grpcClient "github.com/vasiliiperfilev/ddd/internal/common/client"
 	"github.com/vasiliiperfilev/ddd/internal/common/logs"
 	"github.com/vasiliiperfilev/ddd/internal/common/server"
@@ -35,7 +36,10 @@ func main() {
 
 	firebaseDB := db{client}
 
-	server.RunHTTPServer(func(router chi.Router) http.Handler {
+	err = server.RunHTTPServer(func(router chi.Router) http.Handler {
 		return HandlerFromMux(HttpServer{firebaseDB, trainerClient, usersClient}, router)
 	})
+	if err != nil {
+		logrus.Fatal(err)
+	}
 }
