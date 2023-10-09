@@ -10,6 +10,13 @@ import (
 	"github.com/vasiliiperfilev/ddd/internal/common/server/httperr"
 )
 
+type Role string
+
+var (
+	TrainerRole  Role = "trainer"
+	AttendeeRole Role = "attendee"
+)
+
 type FirebaseHttpMiddleware struct {
 	AuthClient *auth.Client
 }
@@ -35,7 +42,7 @@ func (a FirebaseHttpMiddleware) Middleware(next http.Handler) http.Handler {
 		ctx = context.WithValue(ctx, userContextKey, User{
 			UUID:        token.UID,
 			Email:       token.Claims["email"].(string),
-			Role:        token.Claims["role"].(string),
+			Role:        token.Claims["role"].(Role),
 			DisplayName: token.Claims["name"].(string),
 		})
 		r = r.WithContext(ctx)
@@ -57,7 +64,7 @@ func (a FirebaseHttpMiddleware) tokenFromHeader(r *http.Request) string {
 type User struct {
 	UUID  string
 	Email string
-	Role  string
+	Role  Role
 
 	DisplayName string
 }

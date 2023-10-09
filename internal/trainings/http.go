@@ -58,7 +58,7 @@ func (h HttpServer) CreateTraining(w http.ResponseWriter, r *http.Request) {
 		httperr.Unauthorised("no-user-found", err, w, r)
 		return
 	}
-	if user.Role != "attendee" {
+	if user.Role != auth.AttendeeRole {
 		httperr.Unauthorised("invalid-role", nil, w, r)
 		return
 	}
@@ -131,7 +131,7 @@ func (h HttpServer) CancelTraining(w http.ResponseWriter, r *http.Request, train
 			return errors.Wrap(err, "unable to load document")
 		}
 
-		if user.Role != "trainer" && training.UserUuid != user.UUID {
+		if user.Role != auth.TrainerRole && training.UserUuid != user.UUID {
 			return errors.Errorf("user '%s' is trying to cancel training of user '%s'", user.UUID, training.UserUuid)
 		}
 
@@ -140,7 +140,7 @@ func (h HttpServer) CancelTraining(w http.ResponseWriter, r *http.Request, train
 			// just give training back
 			trainingBalanceDelta = 1
 		} else {
-			if user.Role == "trainer" {
+			if user.Role == auth.TrainerRole {
 				// 1 for cancelled training +1 fine for cancelling by trainer less than 24h before training
 				trainingBalanceDelta = 2
 			} else {

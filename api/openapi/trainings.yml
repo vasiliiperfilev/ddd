@@ -171,6 +171,10 @@ components:
           format: date-time
         moveProposedBy:
           type: string
+          x-go-type: auth.Role
+          x-go-type-import:
+            name: auth
+            path: github.com/vasiliiperfilev/ddd/internal/common/auth
 
     Trainings:
       type: object

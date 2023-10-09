@@ -21,7 +21,7 @@ func (d db) TrainingsCollection() *firestore.CollectionRef {
 func (d db) GetTrainings(ctx context.Context, user auth.User) ([]Training, error) {
 	query := d.TrainingsCollection().Query.Where("Time", ">=", time.Now().Add(-time.Hour*24))
 
-	if user.Role != "trainer" {
+	if user.Role != auth.TrainerRole {
 		query = query.Where("UserUuid", "==", user.UUID)
 	}
 

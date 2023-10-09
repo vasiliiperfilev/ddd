@@ -46,6 +46,10 @@ components:
           type: integer
         role:
           type: string
+          x-go-type: auth.Role
+          x-go-type-import:
+            name: auth
+            path: github.com/vasiliiperfilev/ddd/internal/common/auth
 
     Error:
       type: object

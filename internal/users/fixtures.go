@@ -7,9 +7,10 @@ import (
 	"time"
 
 	firebase "firebase.google.com/go"
-	"firebase.google.com/go/auth"
+	fbAuth "firebase.google.com/go/auth"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/vasiliiperfilev/ddd/internal/common/auth"
 	"github.com/vasiliiperfilev/ddd/internal/common/client"
 	"github.com/vasiliiperfilev/ddd/internal/common/genproto/users"
 	"google.golang.org/api/option"
@@ -80,39 +81,39 @@ func createFirebaseUsers() ([]string, error) {
 	usersToCreate := []struct {
 		Email       string
 		DisplayName string
-		Role        string
+		Role        auth.Role
 	}{
 		{
 
 			Email:       "trainer@vasiliis.tech",
 			DisplayName: "Trainer",
-			Role:        "trainer",
+			Role:        auth.TrainerRole,
 		},
 		{
 			Email:       "attendee@vasiliis.tech",
 			DisplayName: "Mariusz Pudzianowski",
-			Role:        "attendee",
+			Role:        auth.AttendeeRole,
 		},
 		{
 			Email:       "attendee2@vasiliis.tech",
 			DisplayName: "Arnold Schwarzenegger",
-			Role:        "attendee",
+			Role:        auth.AttendeeRole,
 		},
 	}
 
 	for _, user := range usersToCreate {
-		userToCreate := (&auth.UserToCreate{}).
+		userToCreate := (&fbAuth.UserToCreate{}).
 			Email(user.Email).
 			Password("123456").
 			DisplayName(user.DisplayName)
 
 		createdUser, err := authClient.CreateUser(context.Background(), userToCreate)
-		if err != nil && auth.IsEmailAlreadyExists(err) {
+		if err != nil && fbAuth.IsEmailAlreadyExists(err) {
 			existingUser, err := authClient.GetUserByEmail(context.Background(), user.Email)
 			if err != nil {
 				return nil, errors.Wrap(err, "unable to get created user")
 			}
-			if user.Role == "attendee" {
+			if user.Role == auth.AttendeeRole {
 				attendeeUUIDs = append(attendeeUUIDs, existingUser.UID)
 			}
 			continue
@@ -128,7 +129,7 @@ func createFirebaseUsers() ([]string, error) {
 			return nil, err
 		}
 
-		if user.Role == "attendee" {
+		if user.Role == auth.AttendeeRole {
 			attendeeUUIDs = append(attendeeUUIDs, createdUser.UID)
 		}
 	}

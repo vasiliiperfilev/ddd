@@ -5,6 +5,8 @@ package main
 
 import (
 	"time"
+
+	auth "github.com/vasiliiperfilev/ddd/internal/common/auth"
 )
 
 const (
@@ -26,7 +28,7 @@ type PostTraining struct {
 // Training defines model for Training.
 type Training struct {
 	CanBeCancelled     bool       `json:"canBeCancelled"`
-	MoveProposedBy     *string    `json:"moveProposedBy,omitempty"`
+	MoveProposedBy     *auth.Role `json:"moveProposedBy,omitempty"`
 	MoveRequiresAccept bool       `json:"moveRequiresAccept"`
 	Notes              string     `json:"notes"`
 	ProposedTime       *time.Time `json:"proposedTime,omitempty"`
