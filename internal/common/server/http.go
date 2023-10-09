@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -19,6 +21,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/vasiliiperfilev/ddd/internal/common/auth"
 	"github.com/vasiliiperfilev/ddd/internal/common/logs"
+	"github.com/vasiliiperfilev/ddd/internal/common/server/httperr"
+	"golang.org/x/time/rate"
 	"google.golang.org/api/option"
 )
 
@@ -86,6 +90,7 @@ func RunHTTPServer(createHandler func(router chi.Router) http.Handler) error {
 func setMiddlewares(router *chi.Mux) {
 	router.Use(middleware.RequestID)
 	router.Use(middleware.RealIP)
+	router.Use(rateLimiterMiddleware)
 	router.Use(logs.NewStructuredLogger(logrus.StandardLogger()))
 	router.Use(middleware.Recoverer)
 
@@ -139,4 +144,39 @@ func addCorsMiddleware(router *chi.Mux) {
 		MaxAge:           300,
 	})
 	router.Use(corsMiddleware.Handler)
+}
+
+func rateLimiterMiddleware(next http.Handler) http.Handler {
+	var (
+		mu      sync.Mutex
+		clients = make(map[string]*rate.Limiter)
+	)
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ip, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			httperr.InternalError("no-ip", err, w, r)
+			return
+		}
+
+		// Lock the mutex to prevent this code from being executed concurrently.
+		mu.Lock()
+
+		if _, found := clients[ip]; !found {
+			clients[ip] = rate.NewLimiter(2, 4)
+		}
+
+		if !clients[ip].Allow() {
+			mu.Unlock()
+			httperr.RateLimitExceeded("rate-limit", nil, w, r)
+			return
+		}
+
+		// Notice that we DON'T use defer to unlock the mutex, as that would mean
+		// that the mutex isn't unlocked until all the handlers downstream of this
+		// middleware have also returned.
+		mu.Unlock()
+
+		next.ServeHTTP(w, r)
+	})
 }

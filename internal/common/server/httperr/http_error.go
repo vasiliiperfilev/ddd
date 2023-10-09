@@ -19,6 +19,10 @@ func BadRequest(slug string, err error, w http.ResponseWriter, r *http.Request) 
 	httpRespondWithError(err, slug, w, r, "Bad request", http.StatusBadRequest)
 }
 
+func RateLimitExceeded(slug string, err error, w http.ResponseWriter, r *http.Request) {
+	httpRespondWithError(err, slug, w, r, "Too Many Requests", http.StatusTooManyRequests)
+}
+
 func httpRespondWithError(err error, slug string, w http.ResponseWriter, r *http.Request, logMSg string, status int) {
 	logs.GetLogEntry(r).WithError(err).WithField("error-slug", slug).Warn(logMSg)
 	resp := ErrorResponse{slug, status}
