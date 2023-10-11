@@ -58,7 +58,7 @@ func (h HttpServer) CreateTraining(w http.ResponseWriter, r *http.Request) {
 		httperr.Unauthorised("no-user-found", err, w, r)
 		return
 	}
-	if user.Role != auth.AttendeeRole {
+	if !auth.PermissionsMap.HasPermission(user.Role, auth.SignForTrainingPermission) {
 		httperr.Unauthorised("invalid-role", nil, w, r)
 		return
 	}
@@ -265,7 +265,7 @@ func (h HttpServer) ApproveRescheduleTraining(w http.ResponseWriter, r *http.Req
 		if training.MoveProposedBy == nil {
 			return errors.New("training has no MoveProposedBy")
 		}
-		if *training.MoveProposedBy == "trainer" && training.UserUuid != user.UUID {
+		if *training.MoveProposedBy == auth.TrainerRole && training.UserUuid != user.UUID {
 			return errors.Errorf("user '%s' cannot approve reschedule of user '%s'", user.UUID, training.UserUuid)
 		}
 		if *training.MoveProposedBy == user.Role {
@@ -305,7 +305,7 @@ func (h HttpServer) RejectRescheduleTraining(w http.ResponseWriter, r *http.Requ
 		if training.MoveProposedBy == nil {
 			return errors.New("training has no MoveProposedBy")
 		}
-		if *training.MoveProposedBy != "trainer" && training.UserUuid != user.UUID {
+		if *training.MoveProposedBy != auth.TrainerRole && training.UserUuid != user.UUID {
 			return errors.Errorf("user '%s' cannot approve reschedule of user '%s'", user.UUID, training.UserUuid)
 		}
 

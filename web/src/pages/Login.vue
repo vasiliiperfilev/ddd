@@ -5,7 +5,7 @@
             <h1 class="h3 mb-3 font-weight-normal">Please sign in</h1>
             <div class="alert alert-primary" role="alert">
                 <p v-for="user in getTestUsers()" :key="user.login">
-                    {{ user.role.charAt(0).toUpperCase() + user.role.slice(1) }} credentials
+                    {{ user.role }} credentials
                     <a href="#" v-bind:data-login="user.login" v-bind:data-password="user.password"
                        v-on:click="loadCredentials" :key="user.login">{{ user.login }}:{{ user.password }}</a>
                 </p>

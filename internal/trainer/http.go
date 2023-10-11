@@ -34,7 +34,7 @@ func (h HttpServer) MakeHourAvailable(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if user.Role != auth.TrainerRole {
+	if !auth.PermissionsMap.HasPermission(user.Role, auth.ChangeTrainerHoursPermission) {
 		httperr.Unauthorised("invalid-role", nil, w, r)
 		return
 	}
@@ -53,7 +53,7 @@ func (h HttpServer) MakeHourUnavailable(w http.ResponseWriter, r *http.Request) 
 		httperr.Unauthorised("no-user-found", err, w, r)
 		return
 	}
-	if user.Role != auth.TrainerRole {
+	if !auth.PermissionsMap.HasPermission(user.Role, auth.ChangeTrainerHoursPermission) {
 		httperr.Unauthorised("invalid-role", nil, w, r)
 		return
 	}

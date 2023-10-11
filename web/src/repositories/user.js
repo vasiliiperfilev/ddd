@@ -66,14 +66,14 @@ export function getTestUsers() {
             'uuid': '1',
             'login': 'trainer@vasilii.tech',
             'password': '123456',
-            'role': 'trainer',
+            'role': 0,
             'name': 'Trainer',
         },
         {
             'uuid': '2',
             'login': 'attendee@vasilii.tech',
             'password': '123456',
-            'role': 'attendee',
+            'role': 1,
             'name': 'Mock Arnie',
         },
     ]

@@ -45,7 +45,7 @@ components:
         balance:
           type: integer
         role:
-          type: string
+          type: integer
           x-go-type: auth.Role
           x-go-type-import:
             name: auth

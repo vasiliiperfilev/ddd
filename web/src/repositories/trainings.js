@@ -39,7 +39,7 @@ export function getAvailableDates(callback) {
     to.setDate(to.getDate() + (7 * 3))
 
     getSchedule(formatDate(new Date()), formatDate(to), function (data) {
-        callback(data.filter(obj => obj.hasFreeHours))
+        callback(data.data.filter(obj => obj.hasFreeHours))
     })
 }
 

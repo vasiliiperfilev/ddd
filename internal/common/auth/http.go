@@ -10,13 +10,6 @@ import (
 	"github.com/vasiliiperfilev/ddd/internal/common/server/httperr"
 )
 
-type Role string
-
-var (
-	TrainerRole  Role = "trainer"
-	AttendeeRole Role = "attendee"
-)
-
 type FirebaseHttpMiddleware struct {
 	AuthClient *auth.Client
 }

@@ -170,7 +170,7 @@ components:
           type: string
           format: date-time
         moveProposedBy:
-          type: string
+          type: integer
           x-go-type: auth.Role
           x-go-type-import:
             name: auth
