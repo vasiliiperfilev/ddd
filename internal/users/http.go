@@ -5,11 +5,13 @@ import (
 
 	"github.com/go-chi/render"
 	"github.com/vasiliiperfilev/ddd/internal/common/auth"
+	"github.com/vasiliiperfilev/ddd/internal/common/server"
 	"github.com/vasiliiperfilev/ddd/internal/common/server/httperr"
 )
 
 type HttpServer struct {
-	db db
+	db             db
+	backgroundJobs *server.BackgroundJobs
 }
 
 func (h HttpServer) GetCurrentUser(w http.ResponseWriter, r *http.Request) {

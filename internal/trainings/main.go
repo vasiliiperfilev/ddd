@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"net/http"
 	"os"
 
 	"cloud.google.com/go/firestore"
@@ -36,8 +35,12 @@ func main() {
 
 	firebaseDB := db{client}
 
-	err = server.RunHTTPServer(func(router chi.Router) http.Handler {
-		return HandlerFromMux(HttpServer{firebaseDB, trainerClient, usersClient}, router)
+	err = server.RunHTTPServer(func(router chi.Router) server.HandlerWithBackgroundJobs {
+		srv := HttpServer{firebaseDB, trainerClient, usersClient, &server.BackgroundJobs{}}
+		return server.HandlerWithBackgroundJobs{
+			Handler:        HandlerFromMux(srv, router),
+			BackgroundJobs: srv.backgroundJobs,
+		}
 	})
 	if err != nil {
 		logrus.Fatal(err)

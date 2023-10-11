@@ -26,12 +26,18 @@ import (
 	"google.golang.org/api/option"
 )
 
-func RunHTTPServer(createHandler func(router chi.Router) http.Handler) error {
+type HandlerWithBackgroundJobs struct {
+	Handler        http.Handler
+	BackgroundJobs *BackgroundJobs
+}
+
+func RunHTTPServer(createHandler func(router chi.Router) HandlerWithBackgroundJobs) error {
 	apiRouter := chi.NewRouter()
 	setMiddlewares(apiRouter)
 	rootRouter := chi.NewRouter()
+	handlerWithBg := createHandler(apiRouter)
 	// we are mounting all APIs under /api path
-	rootRouter.Mount("/api", createHandler(apiRouter))
+	rootRouter.Mount("/api", handlerWithBg.Handler)
 
 	logrus.Info("Starting HTTP server")
 	srv := &http.Server{
@@ -60,7 +66,21 @@ func RunHTTPServer(createHandler func(router chi.Router) http.Handler) error {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		shutdownError <- srv.Shutdown(ctx)
+		err := srv.Shutdown(ctx)
+		if err != nil {
+			shutdownError <- err
+		}
+
+		logrus.Info("completing background tasks", map[string]string{
+			"addr": srv.Addr,
+		})
+
+		// Call Wait() to block until our WaitGroup counter is zero --- essentially
+		// blocking until the background goroutines have finished. Then we return nil on
+		// the shutdownError channel, to indicate that the shutdown completed without
+		// any issues.
+		handlerWithBg.BackgroundJobs.wg.Wait()
+		shutdownError <- nil
 	}()
 	// Calling Shutdown() on our server will cause ListenAndServe() to immediately
 	// return a http.ErrServerClosed error. So if we see this error, it is actually a

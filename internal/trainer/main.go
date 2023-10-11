@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
 
@@ -32,8 +31,12 @@ func main() {
 	case "http":
 		go loadFixtures(firebaseDB)
 
-		err := server.RunHTTPServer(func(router chi.Router) http.Handler {
-			return HandlerFromMux(HttpServer{firebaseDB}, router)
+		err := server.RunHTTPServer(func(router chi.Router) server.HandlerWithBackgroundJobs {
+			srv := HttpServer{firebaseDB, &server.BackgroundJobs{}}
+			return server.HandlerWithBackgroundJobs{
+				Handler:        HandlerFromMux(srv, router),
+				BackgroundJobs: srv.backgroundJobs,
+			}
 		})
 		if err != nil {
 			logrus.Fatal(err)

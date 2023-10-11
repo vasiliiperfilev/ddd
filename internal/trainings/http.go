@@ -12,14 +12,16 @@ import (
 	"github.com/vasiliiperfilev/ddd/internal/common/auth"
 	"github.com/vasiliiperfilev/ddd/internal/common/genproto/trainer"
 	"github.com/vasiliiperfilev/ddd/internal/common/genproto/users"
+	"github.com/vasiliiperfilev/ddd/internal/common/server"
 	"github.com/vasiliiperfilev/ddd/internal/common/server/httperr"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type HttpServer struct {
-	db            db
-	trainerClient trainer.TrainerServiceClient
-	usersClient   users.UsersServiceClient
+	db             db
+	trainerClient  trainer.TrainerServiceClient
+	usersClient    users.UsersServiceClient
+	backgroundJobs *server.BackgroundJobs
 }
 
 func (h HttpServer) GetTrainings(w http.ResponseWriter, r *http.Request) {
