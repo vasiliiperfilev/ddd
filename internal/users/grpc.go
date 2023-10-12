@@ -12,6 +12,7 @@ import (
 
 type GrpcServer struct {
 	db db
+	users.UnimplementedUsersServiceServer
 }
 
 func (g GrpcServer) GetTrainingBalance(ctx context.Context, request *users.GetTrainingBalanceRequest) (*users.GetTrainingBalanceResponse, error) {
