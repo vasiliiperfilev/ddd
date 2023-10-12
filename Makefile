@@ -31,8 +31,8 @@ openapi_js:
 
 .PHONY: proto
 proto:
-	protoc --go_out=plugins=grpc:internal/common/genproto/trainer -I api/protobuf api/protobuf/trainer.proto
-	protoc --go_out=plugins=grpc:internal/common/genproto/users -I api/protobuf api/protobuf/users.proto
+	protoc --go_out=internal/common/genproto --go-grpc_out=internal/common/genproto -I api/protobuf api/protobuf/trainer.proto
+	protoc --go_out=internal/common/genproto --go-grpc_out=internal/common/genproto -I api/protobuf api/protobuf/users.proto
 
 .PHONY: lint
 lint:
