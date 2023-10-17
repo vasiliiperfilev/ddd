@@ -93,10 +93,8 @@ func (h HttpServer) CreateTraining(w http.ResponseWriter, r *http.Request) {
 		}
 
 		timestamp := timestamppb.New(postTraining.Time)
-		_, err = h.trainerClient.UpdateHour(ctx, &trainer.UpdateHourRequest{
-			Time:                 timestamp,
-			HasTrainingScheduled: true,
-			Available:            false,
+		_, err = h.trainerClient.ScheduleTraining(ctx, &trainer.UpdateHourRequest{
+			Time: timestamp,
 		})
 		if err != nil {
 			return errors.Wrap(err, "unable to update trainer hour")
@@ -162,10 +160,8 @@ func (h HttpServer) CancelTraining(w http.ResponseWriter, r *http.Request, train
 		}
 
 		timestamp := timestamppb.New(training.Time)
-		_, err = h.trainerClient.UpdateHour(ctx, &trainer.UpdateHourRequest{
-			Time:                 timestamp,
-			HasTrainingScheduled: false,
-			Available:            true,
+		_, err = h.trainerClient.CancelTraining(ctx, &trainer.UpdateHourRequest{
+			Time: timestamp,
 		})
 		if err != nil {
 			return errors.Wrap(err, "unable to update trainer hour")
@@ -325,19 +321,15 @@ func (h HttpServer) rescheduleTraining(ctx context.Context, oldTime, newTime tim
 	oldTimeProto := timestamppb.New(oldTime)
 	newTimeProto := timestamppb.New(newTime)
 
-	_, err := h.trainerClient.UpdateHour(ctx, &trainer.UpdateHourRequest{
-		Time:                 newTimeProto,
-		HasTrainingScheduled: true,
-		Available:            false,
+	_, err := h.trainerClient.ScheduleTraining(ctx, &trainer.UpdateHourRequest{
+		Time: newTimeProto,
 	})
 	if err != nil {
 		return errors.Wrap(err, "unable to update trainer hour")
 	}
 
-	_, err = h.trainerClient.UpdateHour(ctx, &trainer.UpdateHourRequest{
-		Time:                 oldTimeProto,
-		HasTrainingScheduled: false,
-		Available:            true,
+	_, err = h.trainerClient.CancelTraining(ctx, &trainer.UpdateHourRequest{
+		Time: oldTimeProto,
 	})
 	if err != nil {
 		return errors.Wrap(err, "unable to update trainer hour")

@@ -79,25 +79,32 @@ func createFirebaseUsers() ([]string, error) {
 	}
 
 	usersToCreate := []struct {
+		Id          string
 		Email       string
 		DisplayName string
 		Role        auth.Role
+		LastIP      string
 	}{
 		{
-
+			Id:          "1",
 			Email:       "trainer@vasiliis.tech",
 			DisplayName: "Trainer",
 			Role:        auth.TrainerRole,
+			LastIP:      "test",
 		},
 		{
+			Id:          "2",
 			Email:       "attendee@vasiliis.tech",
 			DisplayName: "Mariusz Pudzianowski",
 			Role:        auth.AttendeeRole,
+			LastIP:      "test",
 		},
 		{
+			Id:          "3",
 			Email:       "attendee2@vasiliis.tech",
 			DisplayName: "Arnold Schwarzenegger",
 			Role:        auth.AttendeeRole,
+			LastIP:      "test",
 		},
 	}
 
@@ -105,7 +112,8 @@ func createFirebaseUsers() ([]string, error) {
 		userToCreate := (&fbAuth.UserToCreate{}).
 			Email(user.Email).
 			Password("123456").
-			DisplayName(user.DisplayName)
+			DisplayName(user.DisplayName).
+			UID(user.Id)
 
 		createdUser, err := authClient.CreateUser(context.Background(), userToCreate)
 		if err != nil && fbAuth.IsEmailAlreadyExists(err) {

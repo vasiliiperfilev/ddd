@@ -12,6 +12,8 @@ import (
 	"github.com/vasiliiperfilev/ddd/internal/common/genproto/trainer"
 	"github.com/vasiliiperfilev/ddd/internal/common/logs"
 	"github.com/vasiliiperfilev/ddd/internal/common/server"
+	"github.com/vasiliiperfilev/ddd/internal/trainer/infra"
+	"github.com/vasiliiperfilev/ddd/internal/trainer/openapi_types"
 	"google.golang.org/grpc"
 )
 
@@ -32,9 +34,9 @@ func main() {
 		go loadFixtures(firebaseDB)
 
 		err := server.RunHTTPServer(func(router chi.Router) server.HandlerWithBackgroundJobs {
-			srv := HttpServer{firebaseDB, &server.BackgroundJobs{}}
+			srv := HttpServer{firebaseDB, infra.NewFirestoreHourRepository(firebaseClient), &server.BackgroundJobs{}}
 			return server.HandlerWithBackgroundJobs{
-				Handler:        HandlerFromMux(srv, router),
+				Handler:        openapi_types.HandlerFromMux(srv, router),
 				BackgroundJobs: srv.backgroundJobs,
 			}
 		})
@@ -43,7 +45,7 @@ func main() {
 		}
 	case "grpc":
 		server.RunGRPCServer(func(server *grpc.Server) {
-			svc := GrpcServer{firebaseDB}
+			svc := GrpcServer{infra.NewFirestoreHourRepository(firebaseClient), trainer.UnimplementedTrainerServiceServer{}}
 			trainer.RegisterTrainerServiceServer(server, svc)
 		})
 	default:

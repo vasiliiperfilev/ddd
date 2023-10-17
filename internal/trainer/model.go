@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/oapi-codegen/runtime/types"
+	api_types "github.com/vasiliiperfilev/ddd/internal/trainer/openapi_types"
 )
 
 const (
@@ -12,7 +13,7 @@ const (
 )
 
 // setDefaultAvailability adds missing hours to Date model if they were not set
-func setDefaultAvailability(date Date) Date {
+func setDefaultAvailability(date api_types.Date) api_types.Date {
 
 HoursLoop:
 	for hour := minHour; hour <= maxHour; hour++ {
@@ -23,7 +24,7 @@ HoursLoop:
 				continue HoursLoop
 			}
 		}
-		newHour := Hour{
+		newHour := api_types.Hour{
 			Available: false,
 			Hour:      hour,
 		}
@@ -34,7 +35,7 @@ HoursLoop:
 	return date
 }
 
-func addMissingDates(params *GetTrainerAvailableHoursParams, dates []Date) []Date {
+func addMissingDates(params *api_types.GetTrainerAvailableHoursParams, dates []api_types.Date) []api_types.Date {
 	for day := params.DateFrom.UTC(); day.Before(params.DateTo) || day.Equal(params.DateTo); day = day.Add(time.Hour * 24) {
 		found := false
 		for _, date := range dates {
@@ -45,7 +46,7 @@ func addMissingDates(params *GetTrainerAvailableHoursParams, dates []Date) []Dat
 		}
 
 		if !found {
-			date := Date{
+			date := api_types.Date{
 				Date: types.Date{
 					Time: day,
 				},
@@ -56,14 +57,4 @@ func addMissingDates(params *GetTrainerAvailableHoursParams, dates []Date) []Dat
 	}
 
 	return dates
-}
-
-func (d Date) FindHourInDate(timeToCheck time.Time) (*Hour, bool) {
-	for i, hour := range d.Hours {
-		if hour.Hour == timeToCheck {
-			return &d.Hours[i], true
-		}
-	}
-
-	return nil, false
 }
