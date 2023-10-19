@@ -12,6 +12,8 @@ import (
 	"github.com/vasiliiperfilev/ddd/internal/common/genproto/users"
 	"github.com/vasiliiperfilev/ddd/internal/common/logs"
 	"github.com/vasiliiperfilev/ddd/internal/common/server"
+	"github.com/vasiliiperfilev/ddd/internal/users/infra"
+	"github.com/vasiliiperfilev/ddd/internal/users/oapi"
 	"google.golang.org/grpc"
 )
 
@@ -23,17 +25,17 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	firebaseDB := db{firestoreClient}
+	userRepository := infra.NewFirestoreUserRepository(firestoreClient)
 
 	serverType := strings.ToLower(os.Getenv("SERVER_TO_RUN"))
 	switch serverType {
 	case "http":
-		go loadFixtures(firebaseDB)
+		go loadFixtures()
 
 		err := server.RunHTTPServer(func(router chi.Router) server.HandlerWithBackgroundJobs {
-			srv := HttpServer{firebaseDB, &server.BackgroundJobs{}}
+			srv := HttpServer{userRepository, &server.BackgroundJobs{}}
 			return server.HandlerWithBackgroundJobs{
-				Handler:        HandlerFromMux(srv, router),
+				Handler:        oapi.HandlerFromMux(srv, router),
 				BackgroundJobs: srv.backgroundJobs,
 			}
 		})
@@ -42,7 +44,7 @@ func main() {
 		}
 	case "grpc":
 		server.RunGRPCServer(func(server *grpc.Server) {
-			svc := GrpcServer{firebaseDB, users.UnimplementedUsersServiceServer{}}
+			svc := GrpcServer{userRepository, users.UnimplementedUsersServiceServer{}}
 			users.RegisterUsersServiceServer(server, svc)
 		})
 	default:

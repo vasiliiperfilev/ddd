@@ -36,10 +36,13 @@ components:
     User:
       type: object
       required:
+        - id
         - displayName
         - balance
         - role
       properties:
+        id:
+          type: string
         displayName:
           type: string
         balance:
@@ -50,6 +53,10 @@ components:
           x-go-type-import:
             name: auth
             path: github.com/vasiliiperfilev/ddd/internal/common/auth
+      x-go-type: user.ResponseDto
+      x-go-type-import:
+        name: user
+        path: github.com/vasiliiperfilev/ddd/internal/users/domain/user
 
     Error:
       type: object

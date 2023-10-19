@@ -1,33 +1,13 @@
 .PHONY: openapi
-openapi: openapi_http openapi_js
-
-.PHONY: openapi_http
-openapi_http:
+openapi:
 	oapi-codegen -generate types -o internal/trainings/openapi_types.gen.go -package main api/openapi/trainings.yml
 	oapi-codegen -generate chi-server -o internal/trainings/openapi_api.gen.go -package main api/openapi/trainings.yml
 
 	oapi-codegen -generate types -o internal/trainer/openapi_types/openapi_types.gen.go -package openapi_types api/openapi/trainer.yml
 	oapi-codegen -generate chi-server -o internal/trainer/openapi_types/openapi_api.gen.go -package openapi_types api/openapi/trainer.yml
 
-	oapi-codegen -generate types -o internal/users/openapi_types.gen.go -package main api/openapi/users.yml
-	oapi-codegen -generate chi-server -o internal/users/openapi_api.gen.go -package main api/openapi/users.yml
-
-.PHONY: openapi_js
-openapi_js:
-	docker run --rm -v ${PWD}:/local openapitools/openapi-generator-cli:v4.3.0 generate \
-        -i /local/api/openapi/trainings.yml \
-        -g javascript \
-        -o /local/web/src/repositories/clients/trainings
-
-	docker run --rm -v ${PWD}:/local openapitools/openapi-generator-cli:v4.3.0 generate \
-		-i /local/api/openapi/trainer.yml \
-		-g javascript \
-		-o /local/web/src/repositories/clients/trainer
-
-	docker run --rm -v ${PWD}:/local openapitools/openapi-generator-cli:v4.3.0 generate \
-		-i /local/api/openapi/users.yml \
-		-g javascript \
-		-o /local/web/src/repositories/clients/users
+	oapi-codegen -generate types -o internal/users/oapi/openapi_types.gen.go -package oapi api/openapi/users.yml
+	oapi-codegen -generate chi-server -o internal/users/oapi/openapi_api.gen.go -package oapi api/openapi/users.yml
 
 .PHONY: proto
 proto:

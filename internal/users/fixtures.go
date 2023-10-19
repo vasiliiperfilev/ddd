@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"os"
-	"strconv"
 	"time"
 
 	firebase "firebase.google.com/go"
@@ -16,7 +15,7 @@ import (
 	"google.golang.org/api/option"
 )
 
-func loadFixtures(db db) {
+func loadFixtures() {
 	start := time.Now()
 	logrus.Debug("Waiting for users service")
 
@@ -30,20 +29,15 @@ func loadFixtures(db db) {
 
 	var attendeeUUIDs []string
 	var err error
-	if mockAuth, _ := strconv.ParseBool(os.Getenv("MOCK_AUTH")); !mockAuth {
-		for {
-			attendeeUUIDs, err = createFirebaseUsers()
-			if err == nil {
-				logrus.Debug("Firestore users created")
-				break
-			}
-
-			logrus.WithError(err).Warn("Unable to create Firestore user")
-			time.Sleep(10 * time.Second)
+	for {
+		attendeeUUIDs, err = createFirebaseUsers()
+		if err == nil {
+			logrus.Debug("Firestore users created")
+			break
 		}
-	} else {
-		// ugly copy from web/src/repositories/user.js
-		attendeeUUIDs = []string{"2"}
+
+		logrus.WithError(err).Warn("Unable to create Firestore user")
+		time.Sleep(10 * time.Second)
 	}
 
 	for {

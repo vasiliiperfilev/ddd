@@ -1,16 +1,5 @@
 version: '3'
 services:
-  web:
-    build:
-      context: docker/web
-      dockerfile: Dockerfile
-    working_dir: /web
-    volumes:
-      - ./web:/web
-      - /web/node_modules/
-    ports:
-      - "127.0.0.1:8080:8080"
-
   trainer-http:
     build:
       context: docker/app
