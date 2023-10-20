@@ -1,3 +1,5 @@
+include .env
+
 .PHONY: openapi
 openapi:
 	oapi-codegen -generate types -o internal/trainings/openapi_types.gen.go -package main api/openapi/trainings.yml
@@ -19,3 +21,7 @@ lint:
 	@./scripts/lint.sh trainer
 	@./scripts/lint.sh trainings
 	@./scripts/lint.sh users
+
+.PHONY: mycli
+mycli:
+	mycli -u ${MYSQL_USER} -p ${MYSQL_PASSWORD} ${MYSQL_DATABASE}
