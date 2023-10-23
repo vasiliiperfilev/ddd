@@ -14,7 +14,8 @@ services:
     environment:
       SERVER_TO_RUN: http
     depends_on:
-      - migrate
+      migrate:
+        condition: service_completed_successfully
 
   trainer-grpc:
     build:
@@ -30,7 +31,8 @@ services:
     environment:
       SERVER_TO_RUN: grpc
     depends_on:
-      - migrate
+      migrate:
+        condition: service_completed_successfully
 
   trainings-http:
     build:
@@ -44,7 +46,8 @@ services:
     env_file:
       - .env
     depends_on:
-      - migrate
+      migrate:
+        condition: service_completed_successfully
 
   users-http:
     build:
@@ -60,7 +63,8 @@ services:
     env_file:
       - .env
     depends_on:
-      - migrate
+      migrate:
+        condition: service_completed_successfully
 
   users-grpc:
     build:
@@ -76,7 +80,8 @@ services:
     env_file:
       - .env
     depends_on:
-      - migrate
+      migrate:
+        condition: service_completed_successfully
 
   mysql:
     image: mysql:8
@@ -90,7 +95,7 @@ services:
       timeout: 20s
       retries: 10
   
-   migrate:
+  migrate:
     image: migrate/migrate
     env_file:
       - .env
@@ -104,6 +109,6 @@ services:
         "-path",
         "/migrations",
         "-database",
-        "mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE}?sslmode=disable",
+        "mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@tcp(mysql:3306)/${MYSQL_DATABASE}",
         "up"
       ]

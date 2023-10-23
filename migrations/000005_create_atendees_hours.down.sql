@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS atendees_hours

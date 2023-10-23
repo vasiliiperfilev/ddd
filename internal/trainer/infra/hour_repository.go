@@ -2,199 +2,183 @@ package infra
 
 import (
 	"context"
+	"database/sql"
+	"os"
 	"time"
 
-	"cloud.google.com/go/firestore"
+	"github.com/go-sql-driver/mysql"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/jmoiron/sqlx"
 	"github.com/oapi-codegen/runtime/types"
 	"github.com/pkg/errors"
 	"github.com/vasiliiperfilev/ddd/internal/trainer/domain/hour"
 	"github.com/vasiliiperfilev/ddd/internal/trainer/openapi_types"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"go.uber.org/multierr"
 )
 
-type FirestoreHourRepository struct {
-	firestoreClient *firestore.Client
+type mysqlHour struct {
+	ID           string    `db:"id"`
+	Hour         time.Time `db:"hour"`
+	Availability string    `db:"availability"`
 }
 
-func NewFirestoreHourRepository(firestoreClient *firestore.Client) *FirestoreHourRepository {
-	if firestoreClient == nil {
-		panic("missing firestoreClient")
+type MySQLHourRepository struct {
+	db          *sqlx.DB
+	hourFactory hour.Factory
+}
+
+func NewMySQLHourRepository(db *sqlx.DB, hourFactory hour.Factory) *MySQLHourRepository {
+	if db == nil {
+		panic("missing db")
+	}
+	if hourFactory.IsZero() {
+		panic("missing hourFactory")
 	}
 
-	return &FirestoreHourRepository{firestoreClient: firestoreClient}
+	return &MySQLHourRepository{db: db, hourFactory: hourFactory}
 }
 
-func (f FirestoreHourRepository) GetOrCreateHour(ctx context.Context, time time.Time) (*hour.Hour, error) {
-	date, err := f.getDateDTO(
-		// getDateDTO should be used both for transactional and non transactional query,
-		// the best way for that is to use closure
-		func() (doc *firestore.DocumentSnapshot, err error) {
-			return f.documentRef(time).Get(ctx)
-		},
-		time,
-	)
+// sqlContextGetter is an interface provided both by transaction and standard db connection
+type sqlContextGetter interface {
+	GetContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
+}
+
+func (m MySQLHourRepository) GetOrCreateHour(ctx context.Context, time time.Time) (*hour.Hour, error) {
+	return m.getOrCreateHour(ctx, m.db, time, false)
+}
+
+func (m MySQLHourRepository) getOrCreateHour(
+	ctx context.Context,
+	db sqlContextGetter,
+	hourTime time.Time,
+	forUpdate bool,
+) (*hour.Hour, error) {
+	dbHour := mysqlHour{}
+
+	query := "SELECT * FROM `hours` WHERE `hour` = ?"
+	if forUpdate {
+		query += " FOR UPDATE"
+	}
+
+	err := db.GetContext(ctx, &dbHour, query, hourTime.UTC())
+	if errors.Is(err, sql.ErrNoRows) {
+		// in reality this date exists, even if it's not persisted
+		return m.hourFactory.NewNotAvailableHour(hourTime)
+	} else if err != nil {
+		return nil, errors.Wrap(err, "unable to get hour from db")
+	}
+
+	availability, err := hour.NewAvailabilityFromString(dbHour.Availability)
 	if err != nil {
 		return nil, err
 	}
 
-	hourFromDb, err := f.domainHourFromDateModel(date, time)
+	domainHour, err := m.hourFactory.UnmarshalHourFromDatabase(dbHour.Hour.Local(), availability)
 	if err != nil {
 		return nil, err
 	}
 
-	return hourFromDb, err
+	return domainHour, nil
 }
 
-func (f FirestoreHourRepository) UpdateHour(
+func (m MySQLHourRepository) UpdateHour(
 	ctx context.Context,
 	hourTime time.Time,
 	updateFn func(h *hour.Hour) (*hour.Hour, error),
-) error {
-	err := f.firestoreClient.RunTransaction(ctx, func(ctx context.Context, transaction *firestore.Transaction) error {
-		dateDocRef := f.documentRef(hourTime)
-
-		firebaseDate, err := f.getDateDTO(
-			// getDateDTO should be used both for transactional and non transactional query,
-			// the best way for that is to use closure
-			func() (doc *firestore.DocumentSnapshot, err error) {
-				return transaction.Get(dateDocRef)
-			},
-			hourTime,
-		)
-		if err != nil {
-			return err
-		}
-
-		hourFromDB, err := f.domainHourFromDateModel(firebaseDate, hourTime)
-		if err != nil {
-			return err
-		}
-
-		updatedHour, err := updateFn(hourFromDB)
-		if err != nil {
-			return errors.Wrap(err, "unable to update hour")
-		}
-		updateHourInDataDTO(updatedHour, &firebaseDate)
-
-		return transaction.Set(dateDocRef, firebaseDate)
-	})
-
-	return errors.Wrap(err, "firestore transaction failed")
-}
-
-func (f FirestoreHourRepository) trainerHoursCollection() *firestore.CollectionRef {
-	return f.firestoreClient.Collection("trainer-hours")
-}
-
-func (f FirestoreHourRepository) documentRef(hourTime time.Time) *firestore.DocumentRef {
-	return f.trainerHoursCollection().Doc(hourTime.Format("2006-01-02"))
-}
-
-func (f FirestoreHourRepository) getDateDTO(
-	getDocumentFn func() (doc *firestore.DocumentSnapshot, err error),
-	dateTime time.Time,
-) (openapi_types.Date, error) {
-	doc, err := getDocumentFn()
-	if status.Code(err) == codes.NotFound {
-		// in reality this date exists, even if it's not persisted
-		return NewEmptyDateDTO(dateTime), nil
-	}
+) (err error) {
+	tx, err := m.db.Beginx()
 	if err != nil {
-		return openapi_types.Date{}, err
+		return errors.Wrap(err, "unable to start transaction")
 	}
 
-	date := openapi_types.Date{}
-	if err := doc.DataTo(&date); err != nil {
-		return openapi_types.Date{}, errors.Wrap(err, "unable to unmarshal Date from Firestore")
-	}
+	// Defer is executed on function just before exit.
+	// With defer, we are always sure that we will close our transaction properly.
+	defer func() {
+		// In `UpdateHour` we are using named return - `(err error)`.
+		// Thanks to that, that can check if function exits with error.
+		//
+		// Even if function exits without error, commit still can return error.
+		// In that case we can override nil to err `err = m.finish...`.
+		err = m.finishTransaction(err, tx)
+	}()
 
-	return date, nil
-}
-
-// for now we are keeping backward comparability, because of that it's a bit messy and overcomplicated
-// todo - we will clean it up later with CQRS :-)
-func (f FirestoreHourRepository) domainHourFromDateModel(date openapi_types.Date, hourTime time.Time) (*hour.Hour, error) {
-	firebaseHour, found := findHourInDateDTO(date, hourTime)
-	if !found {
-		return hour.NewNotAvailableHour(hourTime)
-	}
-
-	availability, err := mapAvailabilityFromDTO(firebaseHour)
+	existingHour, err := m.getOrCreateHour(ctx, tx, hourTime, true)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return hour.UnmarshalHourFromRepository(firebaseHour.Hour.Local(), availability)
+	updatedHour, err := updateFn(existingHour)
+	if err != nil {
+		return err
+	}
+
+	if err := m.upsertHour(tx, updatedHour); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-// for now we are keeping backward comparability, because of that it's a bit messy and overcomplicated
-// todo - we will clean it up later with CQRS :-)
-func updateHourInDataDTO(updatedHour *hour.Hour, firebaseDate *openapi_types.Date) {
-	firebaseHourDTO := domainHourToDTO(updatedHour)
-
-	hourFound := false
-	for i := range firebaseDate.Hours {
-		if !firebaseDate.Hours[i].Hour.Equal(updatedHour.Time()) {
-			continue
-		}
-
-		firebaseDate.Hours[i] = firebaseHourDTO
-		hourFound = true
-		break
+// upsertHour updates hour if hour already exists in the database.
+// If your doesn't exists, it's inserted.
+func (m MySQLHourRepository) upsertHour(tx *sqlx.Tx, hourToUpdate *hour.Hour) error {
+	updatedDbHour := mysqlHour{
+		Hour:         hourToUpdate.Time().UTC(),
+		Availability: hourToUpdate.Availability().String(),
 	}
 
-	if !hourFound {
-		firebaseDate.Hours = append(firebaseDate.Hours, firebaseHourDTO)
-	}
-
-	firebaseDate.HasFreeHours = false
-	for _, h := range firebaseDate.Hours {
-		if h.Available {
-			firebaseDate.HasFreeHours = true
-			break
-		}
-	}
-}
-
-func mapAvailabilityFromDTO(firebaseHour openapi_types.Hour) (hour.Availability, error) {
-	if firebaseHour.Available && !firebaseHour.HasTrainingScheduled {
-		return hour.Available, nil
-	}
-	if !firebaseHour.Available && firebaseHour.HasTrainingScheduled {
-		return hour.TrainingScheduled, nil
-	}
-	if !firebaseHour.Available && !firebaseHour.HasTrainingScheduled {
-		return hour.NotAvailable, nil
-	}
-
-	return hour.Availability{}, errors.Errorf(
-		"unsupported values - Available: %t, HasTrainingScheduled: %t",
-		firebaseHour.Available,
-		firebaseHour.HasTrainingScheduled,
+	_, err := tx.NamedExec(
+		`INSERT INTO 
+			hours (hour, availability) 
+		VALUES 
+			(:hour, :availability)
+		ON DUPLICATE KEY UPDATE 
+			availability = :availability`,
+		updatedDbHour,
 	)
-}
-
-func domainHourToDTO(updatedHour *hour.Hour) openapi_types.Hour {
-	return openapi_types.Hour{
-		Available:            updatedHour.IsAvailable(),
-		HasTrainingScheduled: updatedHour.HasTrainingScheduled(),
-		Hour:                 updatedHour.Time(),
+	if err != nil {
+		return errors.Wrap(err, "unable to upsert hour")
 	}
+
+	return nil
 }
 
-func findHourInDateDTO(firebaseDate openapi_types.Date, time time.Time) (openapi_types.Hour, bool) {
-	for i := range firebaseDate.Hours {
-		firebaseHour := firebaseDate.Hours[i]
-
-		if !firebaseHour.Hour.Equal(time) {
-			continue
+// finishTransaction rollbacks transaction if error is provided.
+// If err is nil transaction is committed.
+//
+// If the rollback fails, we are using multierr library to add error about rollback failure.
+// If the commit fails, commit error is returned.
+func (m MySQLHourRepository) finishTransaction(err error, tx *sqlx.Tx) error {
+	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return multierr.Combine(err, rollbackErr)
 		}
 
-		return firebaseHour, true
+		return err
+	} else {
+		if commitErr := tx.Commit(); commitErr != nil {
+			return errors.Wrap(err, "failed to commit tx")
+		}
+
+		return nil
+	}
+}
+
+func NewMySQLConnection() (*sqlx.DB, error) {
+	config := mysql.Config{
+		Addr:      os.Getenv("MYSQL_ADDR"),
+		User:      os.Getenv("MYSQL_USER"),
+		Passwd:    os.Getenv("MYSQL_PASSWORD"),
+		DBName:    os.Getenv("MYSQL_DATABASE"),
+		ParseTime: true, // with that parameter, we can use time.Time in mysqlHour.Hour
 	}
 
-	return openapi_types.Hour{}, false
+	db, err := sqlx.Connect("mysql", config.FormatDSN())
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot connect to MySQL")
+	}
+
+	return db, nil
 }
 
 func NewEmptyDateDTO(t time.Time) openapi_types.Date {

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"go.uber.org/multierr"
 )
 
 type Hour struct {
@@ -11,84 +12,102 @@ type Hour struct {
 	availability Availability
 }
 
-var (
-	ErrNotFullHour    = errors.New("hour should be a full hour")
-	ErrTooDistantDate = errors.Errorf("schedule can be only set for next %d weeks", MaxWeeksInTheFutureToSet)
-	ErrPastHour       = errors.New("cannot create hour from past")
-	ErrTooEarlyHour   = errors.Errorf("too early hour, min UTC hour: %d", MinUtcHour)
-	ErrTooLateHour    = errors.Errorf("too late hour, max UTC hour: %d", MaxUtcHour)
-)
-
-const (
-	MaxWeeksInTheFutureToSet = 6
-	MinUtcHour               = 12
-	MaxUtcHour               = 20
-	day                      = time.Hour * 24
-	week                     = day * 7
-)
-
-func NewAvailableHour(hour time.Time) (*Hour, error) {
-	if err := validateTime(hour); err != nil {
-		return nil, err
-	}
-
-	return &Hour{
-		hour:         hour,
-		availability: Available,
-	}, nil
+func (h Hour) Availability() Availability {
+	return h.availability
 }
 
-func NewNotAvailableHour(hour time.Time) (*Hour, error) {
-	if err := validateTime(hour); err != nil {
-		return nil, err
-	}
-
-	return &Hour{
-		hour:         hour,
-		availability: NotAvailable,
-	}, nil
+func (h Hour) IsAvailable() bool {
+	return h.availability == Available
 }
 
-// UnmarshalHourFromRepository unmarshals Hour from the database.
-//
-// It should be used only for unmarshalling from the database!
-// You can't use UnmarshalHourFromRepository as constructor - It may put domain into the invalid state!
-func UnmarshalHourFromRepository(hour time.Time, availability Availability) (*Hour, error) {
-	if err := validateTime(hour); err != nil {
-		return nil, err
-	}
-
-	if availability.IsZero() {
-		return nil, errors.New("empty availability")
-	}
-
-	return &Hour{
-		hour:         hour,
-		availability: availability,
-	}, nil
+func (h Hour) HasTrainingScheduled() bool {
+	return h.availability == TrainingScheduled
 }
 
-func validateTime(hour time.Time) error {
-	if !hour.Round(time.Hour).Equal(hour) {
-		return ErrNotFullHour
+func (h *Hour) MakeNotAvailable() error {
+	if h.HasTrainingScheduled() {
+		return ErrTrainingScheduled
 	}
 
-	if hour.After(time.Now().Add(week * MaxWeeksInTheFutureToSet)) {
-		return ErrTooDistantDate
-	}
-
-	currentHour := time.Now().Truncate(time.Hour)
-	if hour.Before(currentHour) || hour.Equal(currentHour) {
-		return ErrPastHour
-	}
-	if hour.UTC().Hour() > MaxUtcHour {
-		return ErrTooLateHour
-	}
-	if hour.UTC().Hour() < MinUtcHour {
-		return ErrTooEarlyHour
-	}
-
+	h.availability = NotAvailable
 	return nil
+}
+
+func (h *Hour) MakeAvailable() error {
+	if h.HasTrainingScheduled() {
+		return ErrTrainingScheduled
+	}
+
+	h.availability = Available
+	return nil
+}
+
+func (h *Hour) ScheduleTraining() error {
+	if !h.IsAvailable() {
+		return ErrHourNotAvailable
+	}
+
+	h.availability = TrainingScheduled
+	return nil
+}
+
+func (h *Hour) CancelTraining() error {
+	if !h.HasTrainingScheduled() {
+		return ErrNoTrainingScheduled
+	}
+
+	h.availability = Available
+	return nil
+}
+
+type FactoryConfig struct {
+	MaxWeeksInTheFutureToSet int
+	MinUtcHour               int
+	MaxUtcHour               int
+}
+
+func (f FactoryConfig) Validate() error {
+	var err error
+
+	if f.MaxWeeksInTheFutureToSet < 1 {
+		err = multierr.Append(
+			err,
+			errors.Errorf(
+				"MaxWeeksInTheFutureToSet should be greater than 1, but is %d",
+				f.MaxWeeksInTheFutureToSet,
+			),
+		)
+	}
+	if f.MinUtcHour < 0 || f.MinUtcHour > 24 {
+		err = multierr.Append(
+			err,
+			errors.Errorf(
+				"MinUtcHour should be value between 0 and 24, but is %d",
+				f.MinUtcHour,
+			),
+		)
+	}
+	if f.MaxUtcHour < 0 || f.MaxUtcHour > 24 {
+		err = multierr.Append(
+			err,
+			errors.Errorf(
+				"MinUtcHour should be value between 0 and 24, but is %d",
+				f.MaxUtcHour,
+			),
+		)
+	}
+
+	if f.MinUtcHour > f.MaxUtcHour {
+		err = multierr.Append(
+			err,
+			errors.Errorf(
+				"MaxUtcHour (%d) can't be after MinUtcHour (%d)",
+				f.MaxUtcHour, f.MinUtcHour,
+			),
+		)
+	}
+
+	return err
 }
 
 func (h *Hour) Time() time.Time {
